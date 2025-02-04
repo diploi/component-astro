@@ -1,0 +1,22 @@
+diploiVersion: v1.0
+type: component
+name: Astro
+description: Official Diploi component for Astro
+
+contexts:
+  - name: app
+    identifier: app
+
+hosts:
+  - name: Astro
+    identifier: app
+    urlFormat: '[label].[default-domain]'
+
+images:
+  - identifier: app
+    prebuildImage: ghcr.io/diploi/component-astro:[tag]
+
+logs:
+  - name: Astro Log
+    type: log
+    labelSelector: app=app
