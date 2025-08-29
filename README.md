@@ -2,6 +2,9 @@
 
 # Astro Component for Diploi
 
+Launch a trial, no registration needed
+https://diploi.com/component/astro
+
 Uses the official [node](https://hub.docker.com/_/node) Docker image.
 
 Has the [@astrojs/ node](https://docs.astro.build/en/guides/integrations-guide/node/) adapter preconfigured.
