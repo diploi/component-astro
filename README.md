@@ -8,6 +8,19 @@ Has the [@astrojs/ node](https://docs.astro.build/en/guides/integrations-guide/n
 
 ## Operation
 
+### Getting started
+
+1. Open your Astro Project’s dashboard:
+   `https://console.diploi.com/<YOUR_USERNAME>/project/<YOUR_PROJECT_ID>`
+2. Click **Create Deployment +**
+3. Select **Production** as the deployment stage
+4. Choose the **cluster size** depending on your needs
+5. Pick the **source branch** you want to deploy, such as `main`
+6. Customize any necessary **environment variables**
+7. Click **Create Deployment +**
+
+Prefer the full guide? Check https://diploi.com/blog/hosting_astro_apps
+
 ### Development
 
 Will run `npm install` when component is first initialized, and `npm run dev` when deployment is started.
