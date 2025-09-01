@@ -13,14 +13,13 @@ Has the [@astrojs/ node](https://docs.astro.build/en/guides/integrations-guide/n
 
 ### Getting started
 
-1. Open your Astro Project’s dashboard:
-   `https://console.diploi.com/<YOUR_USERNAME>/project/<YOUR_PROJECT_ID>`
-2. Click **Create Deployment +**
-3. Select **Production** as the deployment stage
-4. Choose the **cluster size** depending on your needs
-5. Pick the **source branch** you want to deploy, such as `main`
-6. Customize any necessary **environment variables**
-7. Click **Create Deployment +**
+1. **Sign up** at `https://console.diploi.com/` using your GitHub account.
+2. In your dashboard, click **Create Project +**
+3. Under **Pick Components**, choose **Astro**  
+ If you want to expand your Astro website with other tools, like a backend framework, here you can add them.
+4. In **Pick Add-ons**, select any databases or tools supported on Diploi.
+5. In **Repository**, choose **Create Repository** which will generate a new GitHub repo for you.
+6. Click **Launch Stack**
 
 Prefer the full guide? Check https://diploi.com/blog/hosting_astro_apps
 
