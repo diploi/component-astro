@@ -2,11 +2,26 @@
 
 # Astro Component for Diploi
 
+Launch a trial, no registration needed
+https://diploi.com/component/astro
+
 Uses the official [node](https://hub.docker.com/_/node) Docker image.
 
 Has the [@astrojs/ node](https://docs.astro.build/en/guides/integrations-guide/node/) adapter preconfigured.
 
 ## Operation
+
+### Getting started
+
+1. **Sign up** at `https://console.diploi.com/` using your GitHub account.
+2. In your dashboard, click **Create Project +**
+3. Under **Pick Components**, choose **Astro**  
+ If you want to expand your Astro website with other tools, like a backend framework, here you can add them.
+4. In **Pick Add-ons**, select any databases or tools supported on Diploi.
+5. In **Repository**, choose **Create Repository** which will generate a new GitHub repo for you.
+6. Click **Launch Stack**
+
+Prefer the full guide? Check https://diploi.com/blog/hosting_astro_apps
 
 ### Development
 
