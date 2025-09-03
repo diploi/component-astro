@@ -2,6 +2,10 @@
 
 # Astro Component for Diploi
 
+[![launch with diploi badge](https://diploi.com/launch.svg)](https://diploi.com/component/astro)
+[![component on diploi badge](https://diploi.com/component.svg)](https://diploi.com/component/astro)
+[![latest tag badge](https://badgen.net/github/tag/diploi/component-astro)](https://diploi.com/component/astro)
+
 Launch a trial, no registration needed
 https://diploi.com/component/astro
 
