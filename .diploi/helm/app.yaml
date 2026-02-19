@@ -49,7 +49,7 @@ spec:
           image: {{ .Values.images.app }}
           imagePullPolicy: Always
           ports:
-            - containerPort: 3000
+            - containerPort: 4321
           {{- if eq .Values.stage "development" }}
           workingDir: /app{{ .Values.folder }}
           {{- end }}

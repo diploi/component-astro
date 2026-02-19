@@ -3,20 +3,13 @@ type: component
 name: Astro
 description: Official Diploi component for Astro
 
-contexts:
-  - name: app
-    identifier: app
+supportsAdditionalHosts: { serviceName: 'app'}
 
 hosts:
   - name: Astro
     identifier: app
-    urlFormat: '[label].[default-domain]'
+    port: 4321
 
 images:
   - identifier: app
-    prebuildImage: ghcr.io/diploi/component-astro:[tag]
-
-logs:
-  - name: Astro Log
-    type: log
-    labelSelector: app=app
+    prebuildImage: public.ecr.aws/p8t2q7f4/diploi/component-astro:[tag]

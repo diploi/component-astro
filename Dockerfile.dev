@@ -10,8 +10,8 @@ ENV NODE_ENV=development
 
 USER 1000:1000
 
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 4321
+ENV PORT=4321
 ENV HOST="0.0.0.0"
 
 CMD ["npm", "run", "dev"]
