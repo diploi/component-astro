@@ -38,8 +38,19 @@ spec:
         - name: install-dependencies
           image: {{ .Values.images.app }}
           imagePullPolicy: Always
-          command: ['npm', 'install']
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+              elif [ -f package-lock.json ]; then npm ci; \
+              elif [ -f pnpm-lock.yaml ]; then pnpm i --frozen-lockfile; \
+              else echo "Lockfile not found. Skipping install."; \
+              fi
           workingDir: /app{{ .Values.folder }}
+          env:
+          - name: NODE_ENV
+            value: development
           volumeMounts:
             - name: app-mount
               mountPath: /app
@@ -58,10 +69,6 @@ spec:
             - name: {{ .identifier }}
               value: {{ .value | quote }}
             {{- end }}
-            - name: APP_PUBLIC_URL
-              value: {{ .Values.hosts.app }}
-            - name: STAGE
-              value: {{ .Values.stage }}
           volumeMounts:
             {{- if hasKey .Values.storage "code" }}
             - name: app-mount
