@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev --host",
+    "dev": "astro dev",
     "build": "astro build",
     "start": "node ./dist/server/entry.mjs",
     "preview": "astro preview",
@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "@astrojs/node": "^9.5.4",
-    "astro": "^5.17.1"
+    "astro": "^5.18.0"
   }
 }

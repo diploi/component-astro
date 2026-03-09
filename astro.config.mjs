@@ -8,9 +8,4 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone',
   }),
-  vite: {
-    server: {
-      allowedHosts: ['.diploi.app', '.diploi.me'],
-    },
-  },
 });
