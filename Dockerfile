@@ -52,6 +52,7 @@ RUN \
 # When "__VITE_RUNTIME_BUILD" is false, only ship the built assets.
 FROM base AS runner-false
 ARG FOLDER
+COPY --from=builder --chown=1000:1000 ${FOLDER}/node_modules ${FOLDER}/node_modules
 COPY --from=builder --chown=1000:1000 ${FOLDER}/dist ${FOLDER}/dist
 
 # When "__VITE_RUNTIME_BUILD" is true, include entire app code. Build will be run again in an init-container.
