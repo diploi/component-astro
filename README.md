@@ -20,20 +20,59 @@ Has the [@astrojs/ node](https://docs.astro.build/en/guides/integrations-guide/n
 1. **Sign up** at `https://console.diploi.com/` using your GitHub account.
 2. In your dashboard, click **Create Project +**
 3. Under **Pick Components**, choose **Astro**  
- If you want to expand your Astro website with other tools, like a backend framework, here you can add them.
+   If you want to expand your Astro website with other tools, like a backend framework, here you can add them.
 4. In **Pick Add-ons**, select any databases or tools supported on Diploi.
 5. In **Repository**, choose **Create Repository** which will generate a new GitHub repo for you.
 6. Click **Launch Stack**
 
 Prefer the full guide? Check https://diploi.com/blog/hosting_astro_apps
 
+### Package managers
+
+Supports **Bun**, **Yarn**, **npm**, and **pnpm**. The package manager is auto-detected from your lockfile (`bun.lock`, `yarn.lock`, `package-lock.json`, or `pnpm-lock.yaml`). The install and build steps always use the detected package manager.
+
 ### Development
 
-Will run `npm install` when component is first initialized, and `npm run dev` when deployment is started.
+When the component is first initialized, dependencies are installed using the detected package manager. The development server is then started with:
+
+```sh
+npm run dev -- --host
+```
+
+This can be changed with the `containerCommands.developmentStart` field in `diploi.yaml`.
 
 ### Production
 
-Will build a production ready image. Image runs `npm install` & `npm build` when being created. Once the image runs, `npm start` is called.
+Builds a production-ready image. Dependencies are installed and `npm run build` is run during the image build, using the detected package manager. When the container starts, it runs:
+
+```sh
+npm start
+```
+
+This can be changed with the `containerCommands.productionStart` field in `diploi.yaml`.
+
+#### ENV
+
+Since Vite embeds environment variables during the build step, we provide two ways to manage ENV values in production builds:
+
+1. For values that are not deployment-dependent, define them in `diploi.yaml` using the [static import syntax](https://docs.diploi.com/reference/diploi-yaml#env). The values are exposed to the `Dockerfile` as `ARG` variables.
+2. For values that depend on a specific deployment (such as variables imported from other components in `diploi.yaml`, or configured in the **Options** tab), enable the **runtime build** option.
+
+#### Runtime Build
+
+When runtime build is enabled, `npm run build` is executed again when the container starts. This ensures that environment variables from the running deployment are correctly applied, and that any data loaded from other components can use the internal network.
+
+To enable runtime build, set `__VITE_RUNTIME_BUILD` to `true` in `diploi.yaml`:
+
+```yaml
+- name: Astro
+  identifier: astro
+  package: https://github.com/diploi/component-astro#v1.0.0
+  env:
+    include:
+      - name: __VITE_RUNTIME_BUILD
+        value: true
+```
 
 ## Link
 

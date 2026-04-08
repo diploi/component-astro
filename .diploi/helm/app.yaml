@@ -42,8 +42,10 @@ spec:
           - /bin/sh
           - -c
           - |
-            if [ -f yarn.lock ]; then
-              yarn install--frozen-lockfile || yarn install
+            if [ -f bun.lockb ] || [ -f bun.lock ]; then
+              bun install --frozen-lockfile || bun install
+            elif [ -f yarn.lock ]; then
+              yarn install --frozen-lockfile || yarn install
             elif [ -f package-lock.json ]; then
               npm ci || npm install
             elif [ -f pnpm-lock.yaml ]; then
@@ -61,6 +63,44 @@ spec:
           volumeMounts:
             - name: app-mount
               mountPath: /app
+      {{- end }}
+      {{- if and (ne .Values.stage "development")
+                 (hasKey .Values.storage "build")
+                 (hasKey .Values.envMap "__VITE_RUNTIME_BUILD")
+                 (eq (toString (default "" ((index .Values.envMap "__VITE_RUNTIME_BUILD").value))) "true") }}
+      initContainers:
+        - name: runtime-build
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          image: {{ .Values.images.app }}
+          imagePullPolicy: Always
+          env:
+            {{- range .Values.env }}
+            - name: {{ .identifier }}
+              value: {{ .value | quote }}
+            {{- end }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -f bun.lockb ] || [ -f bun.lock ]; then bun run build; \
+              elif [ -f yarn.lock ]; then yarn run build; \
+              elif [ -f package-lock.json ]; then npm run build; \
+              elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
+              else echo "Lockfile not found. Skipping runtime build. This usually means the image was built without __VITE_RUNTIME_BUILD set to true in diploi.yaml. See the README for details."; \
+              fi &&
+              find /build -mindepth 1 -maxdepth 1 -exec rm -rf {} + &&
+              DEST=$(pwd | awk '{sub("/app","/build");print}') &&
+              mkdir -p $DEST &&
+              cp -r ./node_modules $DEST ||: &&
+              cp -rv ./dist $DEST ||: &&
+              cp -rv ./package.json $DEST ||: &&
+              chown -R 1000:1000 /build
+          workingDir: /app{{ .Values.folder }}
+          volumeMounts:
+            - name: build-mount
+              mountPath: /build
       {{- end }}
       containers:
         - name: app
@@ -98,9 +138,21 @@ spec:
             - name: app-mount
               mountPath: /app
             {{- end }}
+            {{- if and (ne .Values.stage "development")
+                       (hasKey .Values.storage "build")
+                       (hasKey .Values.envMap "__VITE_RUNTIME_BUILD")
+                       (eq (toString (default "" ((index .Values.envMap "__VITE_RUNTIME_BUILD").value))) "true") }}
+            - name: build-mount
+              mountPath: /app
+            {{- end }}
       volumes:
         {{- if hasKey .Values.storage "code" }}
         - name: app-mount
           hostPath:
             path: {{ .Values.storage.code.hostPath }}
+        {{- end }}
+        {{- if hasKey .Values.storage "build" }}
+        - name: build-mount
+          hostPath:
+            path: {{ .Values.storage.build.hostPath }}
         {{- end }}

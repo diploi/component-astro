@@ -3,7 +3,7 @@ type: component
 name: Astro
 description: Official Diploi component for Astro
 
-supportsAdditionalHosts: { serviceName: 'app'}
+supportsAdditionalHosts: { serviceName: 'app' }
 
 hosts:
   - name: Astro
@@ -13,3 +13,10 @@ hosts:
 images:
   - identifier: app
     prebuildImage: public.ecr.aws/p8t2q7f4/diploi/component-astro:[tag]
+
+storage:
+  - identifier: build
+    sizeMiB: 8192
+    stages:
+      - staging
+      - production
