@@ -1,3 +1,6 @@
+# This will be set by the GitHub action if "__VITE_RUNTIME_BUILD" ENV is set in diploi.yaml
+ARG __VITE_RUNTIME_BUILD=false
+
 FROM node:22-alpine AS base
 
 # Enable corepack
@@ -10,9 +13,6 @@ ENV PATH="$PNPM_HOME:$PATH"
 
 # This will be set by the GitHub action to the folder containing this component.
 ARG FOLDER=/app
-
-# This will be set by the GitHub action if "__VITE_RUNTIME_BUILD" ENV is set in diploi.yaml
-ARG __VITE_RUNTIME_BUILD=false
 
 # Install dependencies only when needed
 FROM base AS deps

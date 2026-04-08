@@ -18,10 +18,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Static
+          - name: Astro
             folder: .
             type: main
-          - name: Static Dev
+          - name: Astro Dev
             folder: .
             type: dev
     steps:
