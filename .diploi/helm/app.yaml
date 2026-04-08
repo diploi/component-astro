@@ -42,7 +42,9 @@ spec:
           - /bin/sh
           - -c
           - |
-            if [ -f yarn.lock ]; then
+            if [ -f bun.lockb ] || [ -f bun.lock ]; then
+              bun install --frozen-lockfile || bun install
+            elif [ -f yarn.lock ]; then
               yarn install--frozen-lockfile || yarn install
             elif [ -f package-lock.json ]; then
               npm ci || npm install
@@ -82,7 +84,8 @@ spec:
             - /bin/sh
             - -c
             - |
-              if [ -f yarn.lock ]; then yarn run build; \
+              if [ -f bun.lockb ] || [ -f bun.lock ]; then bun run build; \
+              elif [ -f yarn.lock ]; then yarn run build; \
               elif [ -f package-lock.json ]; then npm run build; \
               elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
               else echo "Lockfile not found. Skipping runtime build. This usually means the image was built without __VITE_RUNTIME_BUILD set to true in diploi.yaml. See the README for details."; \
