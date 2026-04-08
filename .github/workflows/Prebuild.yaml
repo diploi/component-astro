@@ -10,7 +10,7 @@ env:
 jobs:
   run-builds:
     name: Build ${{ matrix.name }} ${{ matrix.stage }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
