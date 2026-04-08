@@ -20,20 +20,36 @@ Has the [@astrojs/ node](https://docs.astro.build/en/guides/integrations-guide/n
 1. **Sign up** at `https://console.diploi.com/` using your GitHub account.
 2. In your dashboard, click **Create Project +**
 3. Under **Pick Components**, choose **Astro**  
- If you want to expand your Astro website with other tools, like a backend framework, here you can add them.
+   If you want to expand your Astro website with other tools, like a backend framework, here you can add them.
 4. In **Pick Add-ons**, select any databases or tools supported on Diploi.
 5. In **Repository**, choose **Create Repository** which will generate a new GitHub repo for you.
 6. Click **Launch Stack**
 
 Prefer the full guide? Check https://diploi.com/blog/hosting_astro_apps
 
+### Package managers
+
+Supports **Bun**, **Yarn**, **npm**, and **pnpm**. The package manager is auto-detected from your lockfile (`bun.lock`, `yarn.lock`, `package-lock.json`, or `pnpm-lock.yaml`). The install and build steps always use the detected package manager.
+
 ### Development
 
-Will run `npm install` when component is first initialized, and `npm run dev` when deployment is started.
+When the component is first initialized, dependencies are installed using the detected package manager. The development server is then started with:
+
+```sh
+npm run dev -- --host
+```
+
+This can be changed with the `containerCommands.developmentStart` field in `diploi.yaml`.
 
 ### Production
 
-Will build a production ready image. Image runs `npm install` & `npm build` when being created. Once the image runs, `npm start` is called.
+Builds a production-ready image. Dependencies are installed and `npm run build` is run during the image build, using the detected package manager. When the container starts, it runs:
+
+```sh
+npm start
+```
+
+This can be changed with the `containerCommands.productionStart` field in `diploi.yaml`.
 
 #### ENV
 

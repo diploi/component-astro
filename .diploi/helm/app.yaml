@@ -45,7 +45,7 @@ spec:
             if [ -f bun.lockb ] || [ -f bun.lock ]; then
               bun install --frozen-lockfile || bun install
             elif [ -f yarn.lock ]; then
-              yarn install--frozen-lockfile || yarn install
+              yarn install --frozen-lockfile || yarn install
             elif [ -f package-lock.json ]; then
               npm ci || npm install
             elif [ -f pnpm-lock.yaml ]; then
@@ -95,6 +95,7 @@ spec:
               mkdir -p $DEST &&
               cp -r ./node_modules $DEST ||: &&
               cp -rv ./dist $DEST ||: &&
+              cp -rv ./package.json $DEST ||: &&
               chown -R 1000:1000 /build
           workingDir: /app{{ .Values.folder }}
           volumeMounts:

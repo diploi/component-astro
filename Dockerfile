@@ -60,6 +60,7 @@ FROM base AS runner-false
 ARG FOLDER
 COPY --from=builder --chown=1000:1000 ${FOLDER}/node_modules ${FOLDER}/node_modules
 COPY --from=builder --chown=1000:1000 ${FOLDER}/dist ${FOLDER}/dist
+COPY --from=builder --chown=1000:1000 ${FOLDER}/package.json ${FOLDER}/package.json
 
 # When "__VITE_RUNTIME_BUILD" is true, include entire app code. Build will be run again in an init-container.
 FROM base AS runner-true
@@ -79,4 +80,4 @@ EXPOSE 4321
 ENV PORT=4321
 ENV HOST="0.0.0.0"
 
-CMD ["node", "./dist/server/entry.mjs"]
+CMD ["npm", "start"]
