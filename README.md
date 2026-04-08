@@ -35,6 +35,29 @@ Will run `npm install` when component is first initialized, and `npm run dev` wh
 
 Will build a production ready image. Image runs `npm install` & `npm build` when being created. Once the image runs, `npm start` is called.
 
+#### ENV
+
+Since Vite embeds environment variables during the build step, we provide two ways to manage ENV values in production builds:
+
+1. For values that are not deployment-dependent, define them in `diploi.yaml` using the [static import syntax](https://docs.diploi.com/reference/diploi-yaml#env). The values are exposed to the `Dockerfile` as `ARG` variables.
+2. For values that depend on a specific deployment (such as variables imported from other components in `diploi.yaml`, or configured in the **Options** tab), enable the **runtime build** option.
+
+#### Runtime Build
+
+When runtime build is enabled, `npm run build` is executed again when the container starts. This ensures that environment variables from the running deployment are correctly applied, and that any data loaded from other components can use the internal network.
+
+To enable runtime build, set `__VITE_RUNTIME_BUILD` to `true` in `diploi.yaml`:
+
+```yaml
+- name: Astro
+  identifier: astro
+  package: https://github.com/diploi/component-astro#v1.0.0
+  env:
+    include:
+      - name: __VITE_RUNTIME_BUILD
+        value: true
+```
+
 ## Link
 
 - [Adding Astro to a project](https://docs.diploi.com/building/components/astro)

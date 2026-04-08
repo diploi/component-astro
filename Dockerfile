@@ -11,6 +11,9 @@ ENV PATH="$PNPM_HOME:$PATH"
 # This will be set by the GitHub action to the folder containing this component.
 ARG FOLDER=/app
 
+# This will be set by the GitHub action if "__VITE_RUNTIME_BUILD" ENV is set in diploi.yaml
+ARG __VITE_RUNTIME_BUILD=false
+
 # Install dependencies only when needed
 FROM base AS deps
 
@@ -46,10 +49,19 @@ RUN \
   else echo "No package manifest found. Skipping build step."; \
   fi
 
-# Production image, copy all the files and run "npm start"
-FROM base AS runner
+# When "__VITE_RUNTIME_BUILD" is false, only ship the built assets.
+FROM base AS runner-false
+ARG FOLDER
+COPY --from=builder --chown=1000:1000 ${FOLDER}/dist ${FOLDER}/dist
 
+# When "__VITE_RUNTIME_BUILD" is true, include entire app code. Build will be run again in an init-container.
+FROM base AS runner-true
+ARG FOLDER
 COPY --from=builder --chown=1000:1000 /app /app
+
+FROM runner-${__VITE_RUNTIME_BUILD} AS runner
+ARG FOLDER
+
 WORKDIR ${FOLDER}
 
 ENV NODE_ENV=production
@@ -60,4 +72,4 @@ EXPOSE 4321
 ENV PORT=4321
 ENV HOST="0.0.0.0"
 
-CMD ["npm", "start"]
+CMD ["node", "./dist/server/entry.mjs"]
