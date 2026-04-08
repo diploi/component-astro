@@ -91,6 +91,7 @@ spec:
               DEST=$(pwd | awk '{sub("/app","/build");print}') &&
               mkdir -p $DEST &&
               cp -rv ./dist $DEST ||: &&
+              cp -r ./node_modules $DEST ||: &&
               chown -R 1000:1000 /build
           workingDir: /app{{ .Values.folder }}
           volumeMounts:
