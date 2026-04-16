@@ -96,7 +96,6 @@ spec:
               cp -rv ./dist $DEST ||: &&
               cp -rv ./package.json $DEST ||: &&
               chown -R 1000:1000 /build
-          workingDir: /app{{ .Values.folder }}
           volumeMounts:
             - name: build-mount
               mountPath: /build
