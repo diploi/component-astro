@@ -38,6 +38,8 @@ spec:
           - /bin/sh
           - -c
           - |
+            echo "Remove stale lockfile to ensure clean dev environment start"
+            rm -f .astro/dev.json
             if [ -f bun.lockb ] || [ -f bun.lock ]; then
               bun install --frozen-lockfile || bun install
             elif [ -f yarn.lock ]; then
