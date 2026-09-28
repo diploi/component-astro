@@ -90,9 +90,9 @@ spec:
               find /build -mindepth 1 -maxdepth 1 -exec rm -rf {} + &&
               DEST=$(pwd | awk '{sub("/app","/build");print}') &&
               mkdir -p $DEST &&
-              cp -r ./node_modules $DEST ||: &&
-              cp -rv ./dist $DEST ||: &&
-              cp -rv ./package.json $DEST ||: &&
+              { cp -r ./node_modules $DEST || :; } &&
+              { cp -rv ./dist $DEST || :; } &&
+              { cp -rv ./package.json $DEST || :; } &&
               chown -R 1000:1000 /build
           volumeMounts:
             - name: build-mount
