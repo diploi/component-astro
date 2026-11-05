@@ -20,6 +20,9 @@ An [Astro](https://docs.astro.build/) 7 site, rendered on demand by the
 - `session.driver` in `astro.config.mjs` keeps `Astro.session` data in `/tmp`, because the adapter's default is inside
   the read-only `node_modules`. Sessions are lost when the pod is replaced by a new version or a restart, so use a
   driver for a database when they have to last.
+- `security.allowedDomains` in `astro.config.mjs` lets form posts pass Astro's origin check behind the proxy, for the
+  host in `APP_ENDPOINT`. A form on a custom domain needs that domain added to the list. Always name the hosts: without
+  a `hostname`, a client can set `Astro.url` to any host with an `X-Forwarded-Host` header.
 - npm only runs a dependency's install script once the project approves it (`npm install-scripts approve <package>`,
   saved per version in `allowScripts` of `package.json`, so again after an upgrade), as pnpm (`onlyBuiltDependencies`)
   and Bun (`trustedDependencies`) do. A package that needs its script, such as Prisma for `prisma generate`, otherwise

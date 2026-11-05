@@ -57,6 +57,8 @@ In staging and production the project folder is read-only while the server runs,
 
 [Sessions](https://docs.astro.build/en/guides/sessions/) are kept in `/tmp` (`session.driver` in `astro.config.mjs`), so they last until the component's pod is replaced by a new version or a restart. To keep them longer, use a driver for a database such as Redis.
 
+Astro only accepts a form post from the site's own address. `security.allowedDomains` in `astro.config.mjs` makes that work behind Diploi's proxy for the address in `APP_ENDPOINT`. If a form posts to a custom domain, add the domain to that list.
+
 #### ENV
 
 Astro reads [environment variables](https://docs.astro.build/en/guides/environment-variables/) at two different times:
