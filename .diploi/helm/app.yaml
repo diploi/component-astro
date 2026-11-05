@@ -1,3 +1,6 @@
+{{- /* The port of the component's own host: the service sends to it, and the app listens on it as PORT */}}
+{{- $port := 4321 }}
+{{- range .Values.ports }}{{ if eq .identifier "app" }}{{ $port = .port }}{{ end }}{{ end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,97 +20,102 @@ spec:
       maxUnavailable: 25%
       maxSurge: 25%
   {{- end }}
+  {{- if ne .Values.stage "development" }}
+  # The first pod of a new commit builds before it is ready, and the old one serves meanwhile
+  progressDeadlineSeconds: 1800
+  {{- end }}
   replicas: {{ ternary 1 0 .Values.enabled }}
   template:
     metadata:
+      annotations:
+        # The image starts as root for initScript and runs the app as 1000, so terminals and diploi exec log in as 1000
+        diploi.com/exec-user: "1000:1000"
       labels:
         app: app
+        {{- with .Values.build }}
+        diploi.com/build-hash: {{ .hash | quote }}
+        diploi.com/commit: {{ $.Values.code.commit | quote }}
+        {{- end }}
     spec:
       terminationGracePeriodSeconds: 10
       imagePullSecrets:
         - name: diploi-pull-secret
       {{- if eq .Values.stage "development"}}
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
       initContainers:
         - name: install-dependencies
           image: {{ .Values.images.app }}
           imagePullPolicy: Always
-          command:
-          - /bin/sh
-          - -c
-          - |
-            echo "Remove stale lockfile to ensure clean dev environment start"
-            rm -f .astro/dev.json
-            if [ -f bun.lockb ] || [ -f bun.lock ]; then
-              bun install --frozen-lockfile || bun install
-            elif [ -f yarn.lock ]; then
-              yarn install --frozen-lockfile || yarn install
-            elif [ -f package-lock.json ]; then
-              npm ci || npm install
-            elif [ -f pnpm-lock.yaml ]; then
-              pnpm install --frozen-lockfile || pnpm install
-            elif [ -f package.json ]; then
-              echo "Lockfile not found. Falling back to npm install (non-deterministic install)."
-              npm install
-            else
-              echo "No package manifest found. Skipping install."
-            fi
+          securityContext:
+            allowPrivilegeEscalation: false
+          # args, not command: the image's entrypoint runs the project's initScript as root, then this as uid 1000
+          # A dev server that was stopped by force leaves its lock file, and the next one takes it for a running server
+          args: ["sh", "-c", "rm -f .astro/dev.json && diploi-pm install"]
           workingDir: /app{{ .Values.folder }}
           env:
             - name: NODE_ENV
               value: development
-          volumeMounts:
-            - name: app-mount
-              mountPath: /app
-      {{- end }}
-      {{- if and (ne .Values.stage "development")
-                 (hasKey .Values.storage "build")
-                 (eq (toString (default "true" ((index .Values.envMap "__VITE_RUNTIME_BUILD").value))) "true") }}
-      initContainers:
-        - name: runtime-build
-          securityContext:
-            runAsUser: 0
-            runAsGroup: 0
-          image: {{ .Values.images.app }}
-          imagePullPolicy: Always
-          env:
             {{- range .Values.env }}
             - name: {{ .identifier }}
               value: {{ .value | quote }}
             {{- end }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              if [ -f bun.lockb ] || [ -f bun.lock ]; then bun run build; \
-              elif [ -f yarn.lock ]; then yarn run build; \
-              elif [ -f package-lock.json ]; then npm run build; \
-              elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
-              else echo "Lockfile not found. Skipping runtime build. This usually means the image was built without __VITE_RUNTIME_BUILD set to true in diploi.yaml. See the README for details."; \
-              fi &&
-              find /build -mindepth 1 -maxdepth 1 -exec rm -rf {} + &&
-              DEST=$(pwd | awk '{sub("/app","/build");print}') &&
-              mkdir -p $DEST &&
-              { cp -r ./node_modules $DEST || :; } &&
-              { cp -rv ./dist $DEST || :; } &&
-              { cp -rv ./package.json $DEST || :; } &&
-              chown -R 1000:1000 /build
           volumeMounts:
-            - name: build-mount
-              mountPath: /build
+            - name: app-mount
+              mountPath: /app
+      {{- end }}
+      {{- if and (ne .Values.stage "development") .Values.build }}
+      # Builds the deployment's commit in its build folder, once: core writes the script (docs.diploi.com, runtime builds)
+      initContainers:
+        - name: build
+          image: {{ .Values.images.app }}
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+          workingDir: /app{{ .Values.folder }}
+          command: ["/bin/sh", "-c", {{ .Values.build.script | quote }}]
+          env:
+            {{- range (concat .Values.env .Values.build.env) }}
+            - name: {{ .identifier }}
+              value: {{ .value | quote }}
+            {{- end }}
+          resources:
+            limits:
+              memory: {{ .Values.build.memoryMiB }}Mi
+          volumeMounts:
+            - name: build-folder
+              mountPath: /app
       {{- end }}
       containers:
         - name: app
           image: {{ .Values.images.app }}
           imagePullPolicy: Always
           ports:
-            - containerPort: 4321
-          {{- if eq .Values.stage "development" }}
+            - containerPort: {{ $port }}
+          {{- if ne .Values.stage "development" }}
+          # Ready once it accepts connections: the rollout and builds waiting for this one go by it
+          readinessProbe:
+            tcpSocket:
+              port: {{ $port }}
+            periodSeconds: 5
+          {{- end }}
+          {{- if ne .Values.stage "development" }}
+          # The proxy sends requests here for a moment after this pod starts to stop. Without the wait they fail or hang
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              memory: 500Mi
+            limits:
+              memory: 1000Mi
           workingDir: /app{{ .Values.folder }}
+          # args, not command: the image's entrypoint runs the project's initScript and then the app as uid 1000
+          {{- if eq .Values.stage "development" }}
           {{- with .Values.containerCommands.developmentStart }}
-          command:
+          args:
             - /bin/sh
             - -c
             - |
@@ -115,30 +123,40 @@ spec:
           {{- end }}
           {{- else }}
           {{- with .Values.containerCommands.productionStart }}
-          command:
+          args:
             - /bin/sh
             - -c
             - |
           {{ . | nindent 14 }}
+          {{- else }}
+          args: ["npm", "start"]
           {{- end }}
           {{- end }}
           env:
+            {{- if ne .Values.stage "development" }}
+            # The image is set up for development, the server renders in production mode
+            - name: NODE_ENV
+              value: production
+            {{- end }}
             - name: __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
               value: ".diploi.me,.{{ .Release.Namespace }}"
             {{- range .Values.env }}
             - name: {{ .identifier }}
               value: {{ .value | quote }}
             {{- end }}
+            # Last, so it wins over a PORT of the project's own
+            - name: PORT
+              value: {{ $port | quote }}
           volumeMounts:
             {{- if hasKey .Values.storage "code" }}
             - name: app-mount
               mountPath: /app
             {{- end }}
-            {{- if and (ne .Values.stage "development")
-                        (hasKey .Values.storage "build")
-                        (eq (toString (default "true" ((index .Values.envMap "__VITE_RUNTIME_BUILD").value))) "true") }}
-            - name: build-mount
+            {{- if and (ne .Values.stage "development") .Values.code }}
+            # Read-only, so nothing in the pod can change the build it serves or what root runs at its next start
+            - name: build-folder
               mountPath: /app
+              readOnly: true
             {{- end }}
       volumes:
         {{- if hasKey .Values.storage "code" }}
@@ -146,8 +164,8 @@ spec:
           hostPath:
             path: {{ .Values.storage.code.hostPath }}
         {{- end }}
-        {{- if hasKey .Values.storage "build" }}
-        - name: build-mount
+        {{- if and (ne .Values.stage "development") .Values.code }}
+        - name: build-folder
           hostPath:
-            path: {{ .Values.storage.build.hostPath }}
+            path: {{ .Values.code.hostPath }}
         {{- end }}

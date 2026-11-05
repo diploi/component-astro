@@ -20,15 +20,12 @@ jobs:
         include:
           - name: Astro
             folder: .
-            type: main
-          - name: Astro Dev
-            folder: .
-            type: dev
+            type: main-dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::300197899440:role/ECRPrebuildPushRightsForGithubActionsRole
           aws-region: us-east-1
@@ -38,7 +35,7 @@ jobs:
         with:
           registry-type: public
       - name: Diploi build
-        uses: diploi/action-build@v1.11
+        uses: diploi/action-build@v1.12
         with: ${{ matrix }}
         env:
           project: ${{ env.PROJECT }}

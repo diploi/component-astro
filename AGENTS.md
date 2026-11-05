@@ -9,11 +9,21 @@ An [Astro](https://docs.astro.build/) 7 site, rendered on demand by the
   exports `prerender = true`, which renders it to HTML at build time.
 - Keep the `@astrojs/node` adapter in `mode: 'standalone'`. Staging and production start the server it builds with
   `node ./dist/server/entry.mjs`, so another adapter, or `astro add` of one, breaks them.
-- Serves on port **4321** in every stage: the Astro default in development, and `ENV PORT` in `Dockerfile`, which the
-  standalone server reads, in staging and production. The port is also set in `hosts[].port` in `diploi.yaml` and
-  `EXPOSE`/`ENV PORT` in `Dockerfile` and `Dockerfile.dev`. Keep them in sync.
-- Development runs `npm run dev -- --host` (`Dockerfile.dev`). Staging and production run `npm run build`, which is
-  `astro build` and writes `dist/server/` and `dist/client/`, and then `npm start` (`Dockerfile`).
+- Listens on `PORT`, which Diploi sets to the port of the `app` host in `diploi.yaml` (**4321** unless changed): the
+  development server through `server.port` in `astro.config.mjs`, and the standalone server by itself. To change the
+  port, change only the host's `port`. Never hardcode one: staging and production count a version as ready once it
+  accepts connections on `PORT`, and one that listens elsewhere never becomes ready.
+- Development runs `npm run dev -- --host`. Staging and production build each commit on the deployment with
+  `npm run build`, which is `astro build` and writes `dist/server/` and `dist/client/`, and then run `npm start`. In
+  staging and production the project folder is read-only while the server runs, so server code never writes next to
+  the code: a file needed only during one request goes to `/tmp`, data to a database or another component.
+- `session.driver` in `astro.config.mjs` keeps `Astro.session` data in `/tmp`, because the adapter's default is inside
+  the read-only `node_modules`. Sessions are lost when the pod is replaced by a new version or a restart, so use a
+  driver for a database when they have to last.
+- npm only runs a dependency's install script once the project approves it (`npm install-scripts approve <package>`,
+  saved per version in `allowScripts` of `package.json`, so again after an upgrade), as pnpm (`onlyBuiltDependencies`)
+  and Bun (`trustedDependencies`) do. A package that needs its script, such as Prisma for `prisma generate`, otherwise
+  installs incomplete without an error: approve it when adding it.
 - The development server already allows the Diploi hosts. Add any other host to `server.allowedHosts` in
   `astro.config.mjs`, and never set it to `true`.
 - Add official integrations, such as `react` or `mdx`, with `npx astro add <name> --yes`. It installs them with the
@@ -37,7 +47,7 @@ server, and never start or stop one yourself:
   subcommands cannot see the component's process, so they report that no server is running and delete its lock
   file, `.astro/dev.json`. After that, even `astro dev status` in the component reports that no server is running.
 
-## Environment variables and the runtime build
+## Environment variables
 
 - `import.meta.env` values, and `astro:env` variables with `access: "public"`, are written into the build. Only
   `PUBLIC_` variables, and `astro:env` ones with `context: "client"`, reach code that runs in the browser, and
@@ -46,15 +56,13 @@ server, and never start or stop one yourself:
   `access: "secret"` while the server runs. Use these for secrets.
 - Server code can call another component at its `<HOST>_INTERNAL_ENDPOINT`. Code that runs in the browser needs the
   public `<HOST>_ENDPOINT`, imported under a `PUBLIC_` name in `diploi.yaml`.
-- Staging and production use a **runtime build** by default: each time the component starts, it runs
-  `npm run build` again with the deployment's env vars, so the values written into the build and the prerendered
-  pages use them too. A changed value only takes effect when the component restarts. If that build fails, the new
-  version of the component does not start, so run `npm run build` in the component
+- Staging and production build each commit on the deployment, with the deployment's env vars, once: a restart reuses
+  the build, and a changed env var or a new commit builds again. So the values written into the build and the
+  prerendered pages use the deployment's values. If the build fails, the previous version keeps running and the
+  deployment page shows the log, so run `npm run build` in the component
   (`diploi exec <identifier> -- npm run build`) before calling a change done.
-- With `__VITE_RUNTIME_BUILD` set to `false` in the component's `env.include` in `diploi.yaml`, the build made in the
-  image is used instead. The only values written into it are the static ones from `diploi.yaml`, and `astro build`
-  only sees those once they are declared with `ARG` in the `builder` stage of `Dockerfile`. Values read while the
-  server runs still come from the deployment.
+- The image holds no code and no Dockerfile is in the project. System packages go into `initScript` (every start, as
+  root) or `preBuildScript` (only the build) of the component in `diploi.yaml`.
 
 ## Astro AI tools
 

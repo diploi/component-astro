@@ -9,7 +9,7 @@
 Launch a trial, no account needed
 https://diploi.com/component/astro
 
-Uses the official [node](https://hub.docker.com/_/node) Docker image.
+Runs on Diploi's Node.js base image ([component-bases](https://github.com/diploi/component-bases)), which is built on the official [node](https://hub.docker.com/_/node) image.
 
 Has the [@astrojs/node](https://docs.astro.build/en/guides/integrations-guide/node/) adapter preconfigured in standalone mode. The project uses `output: 'server'`, so pages are rendered on demand, unless a page opts into [prerendering](https://docs.astro.build/en/guides/on-demand-rendering/) with `export const prerender = true`.
 
@@ -29,7 +29,7 @@ Prefer the full guide? Check https://diploi.com/blog/hosting_astro_apps
 
 ### Package managers
 
-Supports **Bun**, **Yarn**, **npm**, and **pnpm**. The package manager is auto-detected from your lockfile (`bun.lock`, `yarn.lock`, `package-lock.json`, or `pnpm-lock.yaml`). The install and build steps always use the detected package manager.
+Supports **Bun**, **Yarn**, **npm**, and **pnpm**. The package manager is the one `packageManager` in your `package.json` names, or else the one your lockfile belongs to (`bun.lock`, `pnpm-lock.yaml`, `yarn.lock` or `package-lock.json`). The install and build steps always use it, at the version `packageManager` names.
 
 ### Development
 
@@ -43,27 +43,26 @@ This can be changed with the `containerCommands.developmentStart` field in `dipl
 
 ### Production
 
-Builds a production-ready image. Image runs `npm install` & `npm run build` when being created, using the detected package manager. `astro build` writes the server to `dist/server/` and the files it serves to `dist/client/`.
+Staging and production build the deployment's commit on the deployment itself, with the deployment's environment variables: dependencies are installed with the detected package manager, then `npm run build` runs `astro build`, which writes the server to `dist/server/` and the files it serves to `dist/client/`. A commit is built once; a restart of the component reuses the build. A failed build leaves the previous version running, and its log is shown on the deployment page, where the commit can also be built again.
 
-Once the image runs, `npm start` is called, which starts the standalone server:
+The component then runs `npm start`, which starts the standalone server:
 
 ```sh
 node ./dist/server/entry.mjs
 ```
 
-This can be changed with the `containerCommands.productionStart` field in `diploi.yaml`.
+This can be changed with the `containerCommands.productionStart` field in `diploi.yaml`. See [Ports](#ports).
+
+In staging and production the project folder is read-only while the server runs, so the server cannot write files next to its code. Keep data in a database or another component, and use `/tmp` for a file needed only during one request.
+
+[Sessions](https://docs.astro.build/en/guides/sessions/) are kept in `/tmp` (`session.driver` in `astro.config.mjs`), so they last until the component's pod is replaced by a new version or a restart. To keep them longer, use a driver for a database such as Redis.
 
 #### ENV
 
 Astro reads [environment variables](https://docs.astro.build/en/guides/environment-variables/) at two different times:
 
-1. **When the app is built.** `import.meta.env` values, and [`astro:env`](https://docs.astro.build/en/guides/environment-variables/#type-safe-environment-variables) variables with `access: "public"`, are replaced during the build step. Only variables with the `PUBLIC_` prefix, or `context: "client"` in `astro:env`, reach code that runs in the browser, and everything they contain is visible there.
+1. **When the app is built.** `import.meta.env` values, and [`astro:env`](https://docs.astro.build/en/guides/environment-variables/#type-safe-environment-variables) variables with `access: "public"`, are replaced during the build step. Only variables with the `PUBLIC_` prefix, or `context: "client"` in `astro:env`, reach code that runs in the browser, and everything they contain is visible there. The build runs with every environment variable of the deployment, so such a variable can hold a deployment's value too, such as another component's public `<HOST>_ENDPOINT`, and prerendered pages can load data from other components over the internal network. A changed value builds the commit again.
 2. **When the server runs.** Server code, such as pages, endpoints and middleware, can read `process.env` and `astro:env` variables with `access: "secret"` while the server runs. Use these for secrets.
-
-We provide two ways to manage the values that are replaced during the build step in production builds:
-
-1. For values that are not deployment-dependent, define them in `diploi.yaml` using the [static import syntax](https://docs.diploi.com/reference/diploi-yaml#env). The values are exposed to the `Dockerfile` as `ARG` variables.
-2. For values that depend on a specific deployment (such as variables imported from other components in `diploi.yaml`, or configured in the **Environment** tab), enable the **runtime build** option.
 
 To use a variable from another component in your code, import it in `diploi.yaml`. For example, to call a backend with the `api` identifier from server code:
 
@@ -78,29 +77,23 @@ To use a variable from another component in your code, import it in `diploi.yaml
 
 Server code can use the `<HOST>_INTERNAL_ENDPOINT` address of a component, which stays inside the deployment. Code that runs in the browser needs the public `<HOST>_ENDPOINT` address, imported under a name with the `PUBLIC_` prefix.
 
-#### Runtime Build
+#### System packages
 
-When runtime build is enabled (which it is by default), `npm run build` is executed again when the container starts. This ensures that environment variables from the running deployment are correctly applied, and that any data loaded from other components by prerendered pages can use the internal network.
-
-If your code only reads deployment-dependent values while the server runs, you can disable runtime build by setting `__VITE_RUNTIME_BUILD` to `false` in `diploi.yaml`:
+The image has no packages beyond Node.js, Bun and pnpm. Install more with `initScript` in `diploi.yaml`, which runs as root when the component starts, or `preBuildScript`, which runs only before the build:
 
 ```yaml
 - name: Astro
   identifier: astro
   package: https://github.com/diploi/component-astro#v7.3.5
-  env:
-    include:
-      - name: __VITE_RUNTIME_BUILD
-        value: false
+  initScript: |
+    apt-get update && apt-get install -y --no-install-recommends imagemagick
 ```
 
 #### Ports
 
-The component serves on port **4321** in both development and production. If you change it, update all of these so they stay in sync:
+The component serves on port **4321** in every stage. To use another one, change the `port` of its `app` host in `diploi.yaml` (`hosts: [{ identifier: app, port: 8080 }]`). Diploi passes that port to the app as the `PORT` environment variable: the development server (`server.port` in `astro.config.mjs`) and the standalone server in staging and production listen on it.
 
-- `hosts[].port` in `diploi.yaml`
-- `EXPOSE` and `ENV PORT` in `Dockerfile` and `Dockerfile.dev`. The production server reads `PORT`
-- `server.port` in `astro.config.mjs`, which the development server uses. It is not set, because 4321 is the Astro default
+A `containerCommands.productionStart` of your own should listen on `$PORT` too. Staging and production count a new version as ready once it accepts connections on that port: one that listens elsewhere never becomes ready, and the previous version keeps serving.
 
 ## Links
 
